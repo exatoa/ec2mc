@@ -55,13 +55,12 @@ class EC2Controller(object):
 		self.config = self.import_setting(_settings)
 		if self.config is None:
 			raise Exception()
-		pass
 
 		self.LOCAL_STATUS_FILE = os.path.join(self.config.OUTPUT_PATH, u'Instances.py')
 		self.KEY_PAIR_PATH = os.path.join(self.config.OUTPUT_PATH, u'key_pairs')
 		self.utils = AmazonUtils(self.config.ACCOUNTS, self.KEY_PAIR_PATH)
 		self.awsLock = threading.Lock()
-		self.dataLock = threading.Lock()
+		pass
 
 	def import_setting(self, _settings):
 		'''
@@ -131,7 +130,11 @@ class EC2Controller(object):
 						regionJSON += u'\t\t"%s":[\n%s\n\t\t],\n' % (region, machineJSON)
 
 				result += u'\t"%s":{\n%s\n\t},\n' % (user, regionJSON[:-2])
-			result = result[:-2] + u'\n}'
+
+			if result.endswith(u',\n'):
+				result = result[:-2] + u'\n'
+			result = result + u'}'
+
 		except Exception, e:
 			return None
 		return result
@@ -238,29 +241,31 @@ class EC2Controller(object):
 		users = instances.keys()
 		users.sort()
 		print(u'----------------* Usage Information (local)*----------------')
-		for user in users:
-			print(user + u':::::')
-			regions = instances[user].keys()
-			regions.sort()
-			for region in regions:
-				for machine in instances[user][region]:
-					print(u'\t%s:: %s'%(REGIONS[region], machine))
+		print(self.convert_instances_to_text(instances))
+		# for user in users:
+		# 	print(user + u':::::')
+		# 	regions = instances[user].keys()
+		# 	regions.sort()
+		# 	for region in regions:
+		# 		for machine in instances[user][region]:
+		# 			print(u'\t%s:: %s'%(REGIONS[region], machine))
 		print(u'---------------------------------------------------------')
 		pass
 
 	def show_remote_status(self):
-		results = self.load_remote_status()	#retrieving full information
+		results = self.load_remote_status(_showProgress=True)	#retrieving full information
 
 		users = results.keys()
 		users.sort()
 		print(u'----------------* Usage Information (Remote)*----------------')
-		for user in users:
-			print(user + u':::::')
-			regions = results[user].keys()
-			regions.sort()
-			for region in regions:
-				for machine in results[user][region]:
-					print(u'\t%s:: %s' % (REGIONS[region], machine))
+		print(self.convert_instances_to_text(results))
+		# for user in users:
+		# 	print(user + u':::::')
+		# 	regions = results[user].keys()
+		# 	regions.sort()
+		# 	for region in regions:
+		# 		for machine in results[user][region]:
+		# 			print(u'\t%s:: %s' % (REGIONS[region], machine))
 		print(u'---------------------------------------------------------')
 		pass
 
@@ -299,27 +304,44 @@ class EC2Controller(object):
 		statStr = u', '.join(u'%s(%d)'%(user, statistics[user]) for user in statistics.keys())
 		print(u'[%s] statistics:: %s'%(self.__name__, statStr))
 
-		# Making new instances!! (in limited nInstances)
-		print(u'[%s] Making working threads.....'%self.__name__)
-		self.work_queue = Queue()
-
-		# create thread pool
-		for i in range(_nThreads):
-			t = Thread(target=self.create_node_worker)
-			t.daemon = True
-			t.start()
-
 		# Create Instance at random place
+		self.work_queue = Queue()
 		for user in self.config.ACCOUNTS.keys():
 			for idx in range(statistics[user], _nInstance):
 				random_idx = random.randint(0, len(REGIONS) - 1)
 				region = REGIONS.keys()[random_idx]
 				self.work_queue.put((user, region))
 
+		if self.work_queue.empty() is True:
+			print(u'[%s] all accounts already has %d instances.' % (self.__name__, _nInstance))
+			self.store_local_status(self.instances)
+			return self.instances
+
+		# create thread pool
+		# Making new instances!! (in limited nInstances)
+		print(u'[%s] Making working threads.....' % (self.__name__))
+		for i in range(_nThreads):
+			t = Thread(target=self.create_node_worker)
+			t.daemon = True
+			t.start()
+
 		# waiting works done.
 		self.work_queue.join()
+		self.store_local_status(self.instances)
 
-		# TODO::make each server for user application if it needs
+		time.sleep(60)  # delay
+
+		# make server to fit for user application
+		for user in self.instances.keys():
+			for region in self.instances[user].keys():
+				for instance in self.instances[user][region]:
+					print(u'[%s] %s, %s start setting it use IP %s after 1 min.' % (self.__name__, user, REGIONS[region], instance['IP']))
+					keypair =  os.path.join(self.KEY_PAIR_PATH, instance['KeyName'] + '.pem')
+					ret = self.server_application(user, region, instance['IP'],keypair)
+					if ret is True:
+						print(u'[%s] %s, %s  server is prepared!' % (self.__name__, user, REGIONS[region], ))
+					else:
+						print(u'[%s] %s, %s failed to setting as user application.' % (self.__name__, user, REGIONS[region], ))
 
 		# Save new InstInfo (InstInfo will be updated in threads.)
 		self.store_local_status(self.instances)
@@ -336,7 +358,7 @@ class EC2Controller(object):
 		'''
 		while True:
 			user, region = self.work_queue.get()
-			header = u'[%s] %s, %s ::'%(self.__name__, user, region)
+			header = u'[%s] %s, %s ::'%(self.__name__, user, REGIONS[region])
 
 			# create instance
 			self.awsLock.acquire()
@@ -371,15 +393,6 @@ class EC2Controller(object):
 			self.instances[user][region].append(instance)
 			self.store_local_status(self.instances)
 			self.awsLock.release()
-
-			print(u'%s start setting it use IP %s after 1 min.' % (header, instance['IP']))
-			time.sleep(60) # delay
-			ret = self.server_application(user, region, instance['IP'], os.path.join(self.KEY_PAIR_PATH, instance['KeyName'] + '.pem'))
-			if ret is True:
-				print(u'%s server is prepared!' % header)
-			else:
-				print(u'%s failed to setting as user application.' % header)
-				return
 
 			#change queue states.
 			self.work_queue.task_done()
@@ -419,20 +432,12 @@ class EC2Controller(object):
 		'''
 		This function should be overrided for your application
 		Now, This function is noting
-		This function works in thread,
-		Therefore, if you need to enter the critical section, use the lock.
-			ex) import threading
-			    self.appLock = threading.Lock()
-			    self.appLock.acquire()
-			    # enter critical section
-			    self.appLock.release()
 		:param _user: user identity to work instance
 		:param _region: region name to work instance
 		:param _ipAddr: IP address to work instance
 		:param _keypairPath: local key pair file path stored in local KEY_PAIR_PATH
 		:return:
 		'''
-
 		pass
 
 	################################################################################
@@ -501,6 +506,9 @@ class EC2Controller(object):
 					print(u'[%s] waiting %s %s instances terminated...' % (self.__name__, user, region))
 					time.sleep(60)
 		print(u'[%s] Completely Deleted all instances.'% self.__name__)
+
+		self.store_local_status({})
+		pass
 
 	def delete_instance(self, _instanceIDs):
 		'''

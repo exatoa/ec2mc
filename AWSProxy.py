@@ -2,7 +2,7 @@
 '''
 Created on 2016. 12. 03
 Updated on 2016. 12. 03
-This class is for example of using EC2MultiController
+This class is for example of using MultiEC2Controller
 @author: Zeck
 '''
 from __future__ import print_function
@@ -98,11 +98,35 @@ class AWSProxy(EC2Controller):
 		return True
 
 	def creates(self, _nInstances, _nThreads):
-
+		'''
+		Overwrite clear method
+		:return:
+		'''
 		super(AWSProxy, self).creates(_nInstances, _nThreads)
-
 		self.store_proxy_list(self.instances)
-		print(u'[%s] wrote data to ProxyList.py' % self.__name__)
+		print(u'[%s] wrote data to %s' % (self.__name__, self.OutputFileName))
+		return
+
+
+	def clear(self):
+		'''
+		Overwrite clear method
+		:return:
+		'''
+		super(AWSProxy, self).clear()
+		self.store_proxy_list([])
+		print(u'[%s] wrote data to %s' % (self.__name__, self.OutputFileName))
+		return
+
+
+	def clear_with_remote(self):
+		'''
+		Overwrite clear method
+		:return:
+		'''
+		super(AWSProxy, self).clear_with_remote()
+		self.store_proxy_list([])
+		print(u'[%s] wrote data to %s' % (self.__name__, self.OutputFileName))
 		return
 
 	def store_proxy_list(self, _instances):
@@ -132,15 +156,19 @@ class AWSProxy(EC2Controller):
 		return result
 
 	def start_watcher(self):
-		from AWSWatcher import AWSWatcher
+		from utils.AWSWatcher import AWSWatcher
+		instances = self.load_local_status()
 		obj = AWSWatcher(120, 15, os.path.join(self.config.OUTPUT_PATH, u'logs'), self.KEY_PAIR_PATH)
-		obj.run()
+		obj.run(instances)
+
+
 		pass
 
 	def clear_remote_logs(self):
-		from AWSWatcher import AWSWatcher
+		from utils.AWSWatcher import AWSWatcher
+		instances = self.load_local_status()
 		obj = AWSWatcher(120, 15, os.path.join(self.config.OUTPUT_PATH, u'logs'), self.KEY_PAIR_PATH)
-		obj.initialize_remote_log()
+		obj.initialize_remote_log(instances)
 		pass
 
 
@@ -150,41 +178,48 @@ class AWSProxy(EC2Controller):
 def getargs():
 	import argparse
 	parser = argparse.ArgumentParser(description='')
-	parser.add_argument('-s', dest='server', default='', help='server command   (create / local / remote / clear / clear_force) ')
+	parser.add_argument('-s', dest='server', default='', help='server command   (create / local_status / remote_status / clear / clear_force) ')
 	parser.add_argument('-l', dest='log', default='', help='log commands ( watch / clear )')
+	parser.add_argument('-n', dest='nInstances', type=int, default=2, help='the number of instances will be created each account')
+	parser.add_argument('-t', dest='nThreads', type=int, default=5, help='the number of thread will be used for working')
 	args = parser.parse_args()
 
 	if ((args.server == '') ^ (args.log == '') ) == False :
 		parser.print_help()
 		return None
-	return args
+	return parser, args
 
 if __name__ == '__main__':
-	args = getargs()
+	parser, args = getargs()
 	if args is None:
 		exit(1)
 
-	obj = AWSProxy(_settings=u'AWSsettings.py')
-	if args.command == 'create':
-		obj.creates(_nInstances=2, _nThreads=5)
+	obj = AWSProxy(_settings=u'utils/AWSsettings.py')
+	if args.server == 'create':
+		obj.creates(_nInstances=args.nInstances, _nThreads=args.nThreads)
 
-	elif args.command == 'local':
+	elif args.server == 'local_status':
 		obj.show_local_status()
 
-	elif args.command == 'remote':
+	elif args.server == 'remote_status':
 		obj.show_remote_status()
 
-	elif args.command == 'clear':
+	elif args.server == 'clear':
 		obj.clear()
 
-	elif args.command == 'clear_force':
+	elif args.server == 'clear_force':
 		obj.clear_with_remote()
 
-	elif args.logs == 'watch':
+	elif args.log == 'watch':
 		obj.start_watcher()
 
-	elif args.command == 'clear':
+	elif args.log == 'clear':
 		obj.clear_remote_logs()
+
+	else:
+		print ('   wrong command!!!')
+		parser.print_help()
+
 
 	# save proxy
 	# instaces = obj.load_local_status()
