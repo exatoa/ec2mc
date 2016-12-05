@@ -1,5 +1,6 @@
 EC2MC
 ================
+### 개요
 	* 다수의 계정에 EC2 Instance들을 생성하고 삭제하는 기능을 제공하는 라이브러리
 	* Python 2.7 기반에서 작성된 코드.
 	* EC2Controller.py : EC2 Instance들을 제어하는 method들을 제공
@@ -9,17 +10,23 @@ EC2MC
 	* EC2Controller는 상속을 통해서 EC2 Instance에 사용자가 원하는 작업을 수행하도록 지원
 	* 이를 위해 Sample 코드로써, EC2 Instance들을 Proxy 서버로 생성하는 코드를 함께 제공
 	
+### Library dependency
+	* boto3 : EC2MC의 동작을 위해 필요한 라이브러리 (amazon_boto)
+	* botocore : EC2MC의 동작을 위해 필요한 라이브러리 (amazon_boto)
+	* fabric : 코드로 원격지 컴퓨터에 SSH를 통해 명령어를 수행하는 라이브러리
+	* Flask : Web Server library (설정파일 다운로드를 위해서 사용)
 
-### 주의사항
-	* 기본적으로 Amazon Library인 boto3에 의존하고 있어, Library변경시 문제가 발생될 수 있음.
-	* AmazonInfo.py에 기록된 정보들은 Amazon에서 코드를 변경하게 되면 문제가 발생될 수 있음.
+	* 설치 : pip install boto3 botocore fabric Flask
 
 
-### Sample (AWS Proxy server group manger)
+
+Sample (AWS Proxy server group manger)
+---------------------------------------
 	* EC2MC의 응용 예를 보여주기 위한 코드들
 	* sample 폴더와 AWSProxy.py가 해당 코드들이다.
 
-##### Sample Code를 위한 준비작업
+
+### Sample Code를 위한 준비작업
 	1. sample폴더로 이동하여 python WebServer.py를 실행
 		* python WebServer.py -d ./ -p 80
 		* 그러면 현재 자신의 컴퓨터가 80포트로 웹서버가 된다. (서비스폴더 : 현재폴더)
@@ -36,7 +43,7 @@ EC2MC
 	4. AWSsettins.py 파일에서 OUTPUT_PATH 설정
 		* 로그인에 필요한 key pair나 결과들이 출력될 폴더 지정
 
-##### Sample Code 실행
+### Sample Code 실행
 	* python AWSProxy.py -s create -n 2 -t 5
 		+ Amazon 계정에 서버를 생성
 		+ 각 계정에 2개의 instance를 생성
@@ -62,11 +69,7 @@ EC2MC
 		+ 각 Instance에 저장된 log들을 지우고 초기화 함 
 
 
-### Library dependency
-	* boto3 : EC2MC의 동작을 위해 필요한 라이브러리 (amazon_boto)
-	* botocore : EC2MC의 동작을 위해 필요한 라이브러리 (amazon_boto)
-	* fabric : 코드로 원격지 컴퓨터에 SSH를 통해 명령어를 수행하는 라이브러리
-	* Flask : Web Server library (설정파일 다운로드를 위해서 사용)
-
-	* 설치 : pip install boto3 botocore fabric Flask
-
+주의사항
+---------------------------------------
+	* 기본적으로 Amazon Library인 boto3에 의존하고 있어, Library변경시 문제가 발생될 수 있음.
+	* AmazonInfo.py에 기록된 정보들은 Amazon에서 코드를 변경하게 되면 문제가 발생될 수 있음.
