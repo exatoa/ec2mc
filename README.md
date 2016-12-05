@@ -19,13 +19,15 @@ EC2MC
 	* EC2MC의 응용 예를 보여주기 위한 코드들
 	* sample 폴더와 AWSProxy.py가 해당 코드들이다.
 
-### Sample Code 실행
-	1. 첫째 sample폴더로 이동하여 python WebServer.py를 실행
+##### Sample Code를 위한 준비작업
+	1. sample폴더로 이동하여 python WebServer.py를 실행
 		* python WebServer.py -d ./ -p 80
 		* 그러면 현재 자신의 컴퓨터가 80포트로 웹서버가 된다. (서비스폴더 : 현재폴더)
 		* 만약 자신의 공인IP가 5.5.5.5라고 하면 http://5.5.5.5:80이 서버 주소가 된다.
+
 	2. 루트폴더의 AWSProxy.py의 설정에 squidSettingURL변수의 값을 수정
 		* squidSettingURL = u'http://5.5.5.5:80/squid.conf'
+
 	3.  AWSsettins.py 파일에서 Amazon 계정의 Access key 값을 설정
 		* Amazon AWS Login > Management Console > Security Credentials
 		* Access Key > Create new Access key
@@ -33,24 +35,31 @@ EC2MC
 		
 	4. AWSsettins.py 파일에서 OUTPUT_PATH 설정
 		* 로그인에 필요한 key pair나 결과들이 출력될 폴더 지정
-	5. 프로그램 실행
-		* python AWSProxy.py -s create -n 2 -t 5
-			+ Amazon 계정에 서버를 생성
-			+ 각 계정에 2개의 instance를 생성
-			+ 5개의 thread를 이용해서 작업 수행
-		* python AWSProxy.py -s local_status
-			+ 현재 생성된 instance정보들을 보여줌 (local의 정보 이용)
-		* python AWSProxy.py -s remote_status
-			+ 현재 생성된 instance정보들을 보여줌 (account에서 정보를 조회)
-		* python AWSProxy.py -s clear
-			+ 생성된 모든 Instance들을 제거함
-			+ local에 저장된 정보를 바탕으로 제거하므로 local에 저장된 정보가 손실되면 에러
-		* python AWSProxy.py -s clear_force
-			+ Amazon 계정에 생성된 Instance들을 조사한 후에 프로그램에서 생성한 Instace들을 제거
-		* python AWSProxy.py -l watch
-			+ 각 Instace에 요청된 request의 수치를 볼 수 있음. (매 15초마다 갱신됨)
-		* python AWSProxy.py -l clear
-			+ 각 Instance에 저장된 log들을 지우고 초기화 함 
+
+##### Sample Code 실행
+	* python AWSProxy.py -s create -n 2 -t 5
+		+ Amazon 계정에 서버를 생성
+		+ 각 계정에 2개의 instance를 생성
+		+ 5개의 thread를 이용해서 작업 수행
+
+	* python AWSProxy.py -s local_status
+		+ 현재 생성된 instance정보들을 보여줌 (local의 정보 이용)
+
+	* python AWSProxy.py -s remote_status
+		+ 현재 생성된 instance정보들을 보여줌 (account에서 정보를 조회)
+
+	* python AWSProxy.py -s clear
+		+ 생성된 모든 Instance들을 제거함
+		+ local에 저장된 정보를 바탕으로 제거하므로 local에 저장된 정보가 손실되면 에러
+
+	* python AWSProxy.py -s clear_force
+		+ Amazon 계정에 생성된 Instance들을 조사한 후에 프로그램에서 생성한 Instace들을 제거
+
+	* python AWSProxy.py -l watch
+		+ 각 Instace에 요청된 request의 수치를 볼 수 있음. (매 15초마다 갱신됨)
+
+	* python AWSProxy.py -l clear
+		+ 각 Instance에 저장된 log들을 지우고 초기화 함 
 
 
 ### Library dependency
