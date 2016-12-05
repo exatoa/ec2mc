@@ -1,7 +1,7 @@
 #-*- coding: utf-8 -*-
 '''
 Created on 2016. 12. 03
-Updated on 2016. 12. 03
+Updated on 2016. 12. 06
 This class is for example of using MultiEC2Controller
 @author: Zeck
 '''
@@ -28,13 +28,6 @@ class AWSProxy(EC2Controller):
 	squidSettingURL = u'http://52.78.230.52/squid.conf'
 	squidPort = 20160
 	OutputFileName = 'data/ProxyList.py'
-
-	appLock = None
-	def __init__(self, _settings):
-		super(AWSProxy, self).__init__(_settings)
-
-		self.appLock = threading.Lock()
-		pass
 
 	def server_application(self, _user, _region, _ipAddr, _keypairPath):
 		'''
@@ -67,7 +60,6 @@ class AWSProxy(EC2Controller):
 		print(u'%s installed squid' % header)
 
 		while True:
-			self.appLock.acquire()
 			with settings(hide('warnings', 'running', 'stdout', 'stderr'), warn_only=True):
 				res = run('sudo wget %s -O /etc/squid/squid.conf' % self.squidSettingURL)
 
@@ -75,14 +67,11 @@ class AWSProxy(EC2Controller):
 				res = run('cat /etc/squid/squid.conf | grep "^http_port"')
 
 			if res.startswith('http_port %d' % self.squidPort) is True:
-				self.appLock.release()
 				break
-			self.appLock.release()
 			time.sleep(5)
 		print(u'%s copied squid config file.' % header)
 
 		while True:
-			self.appLock.acquire()
 			with settings(hide('warnings', 'running', 'stdout', 'stderr'), warn_only=True):
 				res = run('sudo service squid restart')
 
@@ -90,9 +79,7 @@ class AWSProxy(EC2Controller):
 				res = run('netstat -nat tcp | grep %d | grep LISTEN' % self.squidPort)
 
 			if res.startswith('tcp') is True:
-				self.appLock.release()
 				break
-			self.appLock.release()
 			time.sleep(5)
 		print(u'%s squid service restarted.' % header)
 		return True
@@ -105,8 +92,7 @@ class AWSProxy(EC2Controller):
 		super(AWSProxy, self).creates(_nInstances, _nThreads)
 		self.store_proxy_list(self.instances)
 		print(u'[%s] wrote data to %s' % (self.__name__, self.OutputFileName))
-		return
-
+		pass
 
 	def clear(self):
 		'''
@@ -116,8 +102,7 @@ class AWSProxy(EC2Controller):
 		super(AWSProxy, self).clear()
 		self.store_proxy_list([])
 		print(u'[%s] wrote data to %s' % (self.__name__, self.OutputFileName))
-		return
-
+		pass
 
 	def clear_with_remote(self):
 		'''
@@ -127,13 +112,9 @@ class AWSProxy(EC2Controller):
 		super(AWSProxy, self).clear_with_remote()
 		self.store_proxy_list([])
 		print(u'[%s] wrote data to %s' % (self.__name__, self.OutputFileName))
-		return
+		pass
 
 	def store_proxy_list(self, _instances):
-		# if os.path.exists(self.config.OUTPUT_PATH) is False:
-		# 	os.makedirs(self.config.OUTPUT_PATH)
-
-		#filepath = os.path.join(self.config.OUTPUT_PATH, self.OutputFileName)
 		f = codecs.open(self.OutputFileName, 'w', 'utf-8')
 		f.write(self.convert_instances_to_proxylist(_instances))
 		f.close()
@@ -156,15 +137,21 @@ class AWSProxy(EC2Controller):
 		return result
 
 	def start_watcher(self):
+		'''
+		Start AWSWatcher 
+		:return: 
+		'''
 		from utils.AWSWatcher import AWSWatcher
 		instances = self.load_local_status()
 		obj = AWSWatcher(120, 15, os.path.join(self.config.OUTPUT_PATH, u'logs'), self.KEY_PAIR_PATH)
 		obj.run(instances)
-
-
 		pass
 
 	def clear_remote_logs(self):
+		'''
+		Start AWSWatcher clear log
+		:return: 
+		'''
 		from utils.AWSWatcher import AWSWatcher
 		instances = self.load_local_status()
 		obj = AWSWatcher(120, 15, os.path.join(self.config.OUTPUT_PATH, u'logs'), self.KEY_PAIR_PATH)
@@ -177,7 +164,7 @@ class AWSProxy(EC2Controller):
 ###############################################################################################################
 def getargs():
 	import argparse
-	parser = argparse.ArgumentParser(description='')
+	parser = argparse.ArgumentParser(description='Mulit Account AWS Proxy server Management Program')
 	parser.add_argument('-s', dest='server', default='', help='server command   (create / local_status / remote_status / clear / clear_force) ')
 	parser.add_argument('-l', dest='log', default='', help='log commands ( watch / clear )')
 	parser.add_argument('-n', dest='nInstances', type=int, default=2, help='the number of instances will be created each account')
@@ -189,12 +176,13 @@ def getargs():
 		return None
 	return parser, args
 
+
 if __name__ == '__main__':
 	parser, args = getargs()
 	if args is None:
 		exit(1)
 
-	obj = AWSProxy(_settings=u'utils/AWSsettings.py')
+	obj = AWSProxy(_settings=u'sample/AWSsettings.py')
 	if args.server == 'create':
 		obj.creates(_nInstances=args.nInstances, _nThreads=args.nThreads)
 
@@ -219,17 +207,3 @@ if __name__ == '__main__':
 	else:
 		print ('   wrong command!!!')
 		parser.print_help()
-
-
-	# save proxy
-	# instaces = obj.load_local_status()
-	# obj.store_proxy_list(instaces)
-
-	# 보조 작업들
-	# [u'i-0988f737e76564dc5', u'i-0265af93a235874a6']
-	# obj.delete_instance(_instanceIDs=[])
-
-	# obj.reset_user_application(_serverIPs=[u' 35.154.71.132', u'52.78.64.253'])
-	# obj.delete_all_key_pairs()
-	# obj.delete_all_security_groups()
-

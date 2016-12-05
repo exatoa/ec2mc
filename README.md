@@ -2,7 +2,7 @@ EC2MC
 ================
 ### 개요
 	* 다수의 계정에 EC2 Instance들을 생성하고 삭제하는 기능을 제공하는 라이브러리
-	* Python 2.7 기반에서 작성된 코드.
+	* Python 2.7 기반
 	* EC2Controller.py : EC2 Instance들을 제어하는 method들을 제공
 	* AmazonUtils.py : EC2Controller를 위해 Amazon boto라이브러리를 wrapping 하여 가공
 	* AmazonInfo.py : EC2 Instance를 제어하는데 필요한 기본값들을 보관
