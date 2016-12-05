@@ -46,16 +46,13 @@ class AWSProxy(EC2Controller):
 		env.key_filename = [_keypairPath]  #os.path.join(self.config.KEY_PAIR_PATH, '%s.pem' % _keyName),]
 
 		while True:
-			self.appLock.acquire()
 			with settings(hide('warnings', 'running', 'stdout', 'stderr'), warn_only=True):
 				res = run('sudo apt-get -y install squid')
 
 			with settings(hide('warnings', 'running', 'stdout', 'stderr'), warn_only=True):
 				res = run('service	squid view')
 			if res.startswith('Usage: /etc/init.d/squid') is True:
-				self.appLock.release()
 				break
-			self.appLock.release()
 			time.sleep(5)
 		print(u'%s installed squid' % header)
 
