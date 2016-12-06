@@ -13,7 +13,6 @@ import threading
 import time
 from fabric.api import env, run, settings, hide
 from fabric.exceptions import NetworkError
-from data.ProxyContext import proxy_contexts
 
 import warnings
 warnings.filterwarnings("ignore", category=UnicodeWarning)
