@@ -335,19 +335,19 @@ class EC2Controller(object):
 		for user in self.instances.keys():
 			for region in self.instances[user].keys():
 				for instance in self.instances[user][region]:
-					print(u'[%s] %s, %s start setting it use IP %s after 1 min.' % (self.__name__, user, REGIONS[region], instance['IP']))
-					keypair =  os.path.join(self.KEY_PAIR_PATH, instance['KeyName'] + '.pem')
-					ret = self.server_application(user, region, instance['IP'],keypair)
+					print(u'[%s] %s, %s :: IP %s assigned, starting to set it up...' % (self.__name__, user, REGIONS[region], instance['IP']))
+					keypair =  os.path.join(self.KEY_PAIR_PATH, u'%s.pem' % instance['KeyName'])
+					ret = self.server_application(user, REGIONS[region], instance['IP'],keypair)
 					if ret is True:
-						print(u'[%s] %s, %s  server is prepared!' % (self.__name__, user, REGIONS[region], ))
+						print(u'[%s] %s, %s :: %s server is prepared!' % (self.__name__, user, REGIONS[region], instance['IP']))
 					else:
-						print(u'[%s] %s, %s failed to setting as user application.' % (self.__name__, user, REGIONS[region], ))
+						print(u'[%s] %s, %s :: %s failed to setting as user application.' % (self.__name__, user, REGIONS[region], instance['IP'] ))
 
 		# Save new InstInfo (InstInfo will be updated in threads.)
 		self.store_local_status(self.instances)
 		print(u'[%s] wrote data to local status'%(self.__name__))
 
-		print(u'[%s] Completely Done.'%self.__name__)
+		print(u'[%s] Completely Done.'% self.__name__)
 		return self.instances
 
 	def create_node_worker(self):
@@ -372,7 +372,7 @@ class EC2Controller(object):
 				print(u'%s create instance Error!\n%s' % (header, res))
 				return
 			instance = res['instance']
-			print(u'%s ID(%s) in %s::%s instance Created!' % (header, instance['ID'], user, region))
+			print(u'%s Created a instance ID(%s)!' % (header, instance['ID']))
 			self.awsLock.release()
 
 			# waiting server is ready
